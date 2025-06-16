@@ -9,7 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, ArrowRight, Save, Building, User } from "lucide-react";
+import { ArrowLeft, ArrowRight, Save, Building, User, Briefcase } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { ContractTemplate, Contract, ContractField } from "@shared/schema";
@@ -71,6 +71,7 @@ export default function ContractForm({ template, contractId, onContractCreated }
     return z.object(schemaFields);
   };
 
+  const templateFields = (template.fields as ContractField[]) || [];
   const formSchema = createFormSchema(templateFields);
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -159,7 +160,6 @@ export default function ContractForm({ template, contractId, onContractCreated }
   };
 
   // Group fields by section for better organization
-  const templateFields = (template.fields as ContractField[]) || [];
   const employerFields = templateFields.filter(field => field.id.startsWith('employer.'));
   const employeeFields = templateFields.filter(field => field.id.startsWith('employee.'));
   const employmentFields = templateFields.filter(field => field.id.startsWith('employment.'));
@@ -273,6 +273,32 @@ export default function ContractForm({ template, contractId, onContractCreated }
                   </div>
                 </div>
               )}
+
+              {/* Client Information (for service contracts) */}
+              {clientFields.length > 0 && (
+                <div className="space-y-4">
+                  <h4 className="font-medium text-gray-900 flex items-center">
+                    <Building className="h-5 w-5 mr-2 text-primary" />
+                    委託者情報
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {clientFields.map(renderField)}
+                  </div>
+                </div>
+              )}
+
+              {/* Contractor Information (for service contracts) */}
+              {contractorFields.length > 0 && (
+                <div className="border-t border-gray-200 pt-6">
+                  <h4 className="font-medium text-gray-900 flex items-center">
+                    <User className="h-5 w-5 mr-2 text-primary" />
+                    受託者情報
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    {contractorFields.map(renderField)}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -294,6 +320,24 @@ export default function ContractForm({ template, contractId, onContractCreated }
             </Card>
           )}
 
+          {/* Service Details */}
+          {serviceFields.length > 0 && (
+            <Card>
+              <CardHeader className="p-6 border-b border-gray-200">
+                <h3 className="text-lg font-medium text-gray-900">業務内容</h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  委託業務に関する詳細条件を設定してください
+                </p>
+              </CardHeader>
+              
+              <CardContent className="p-6 space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {serviceFields.map(renderField)}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Other Fields */}
           {otherFields.length > 0 && (
             <Card>
@@ -305,6 +349,23 @@ export default function ContractForm({ template, contractId, onContractCreated }
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {otherFields.map(renderField)}
                 </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Show message if no fields */}
+          {templateFields.length === 0 && (
+            <Card>
+              <CardContent className="p-12 text-center">
+                <div className="text-gray-400 mb-4">
+                  <Briefcase className="h-12 w-12 mx-auto" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  このテンプレートは準備中です
+                </h3>
+                <p className="text-gray-600">
+                  現在、このテンプレートのフィールドを設定中です。しばらくお待ちください。
+                </p>
               </CardContent>
             </Card>
           )}
