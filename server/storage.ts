@@ -9,6 +9,8 @@ import {
   type User, 
   type InsertUser 
 } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 export interface IStorage {
   // User methods
@@ -29,27 +31,18 @@ export interface IStorage {
   deleteContract(id: number): Promise<boolean>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private contractTemplates: Map<number, ContractTemplate>;
-  private contracts: Map<number, Contract>;
-  private currentUserId: number;
-  private currentTemplateId: number;
-  private currentContractId: number;
-
+export class DatabaseStorage implements IStorage {
   constructor() {
-    this.users = new Map();
-    this.contractTemplates = new Map();
-    this.contracts = new Map();
-    this.currentUserId = 1;
-    this.currentTemplateId = 1;
-    this.currentContractId = 1;
-    
-    // Initialize with default templates
+    // Initialize with default templates on first run
     this.initializeTemplates();
   }
 
-  private initializeTemplates() {
+  private async initializeTemplates() {
+    // Check if templates already exist
+    const existingTemplates = await db.select().from(contractTemplates).limit(1);
+    if (existingTemplates.length > 0) {
+      return; // Templates already initialized
+    }
     const templates: InsertContractTemplate[] = [
       {
         name: "employment",
@@ -247,83 +240,85 @@ export class MemStorage implements IStorage {
       }
     ];
 
-    templates.forEach(template => {
-      this.createContractTemplate(template);
-    });
+    for (const template of templates) {
+      await this.createContractTemplate(template);
+    }
   }
 
   // User methods
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentUserId++;
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
     return user;
   }
 
   // Contract template methods
   async getContractTemplates(): Promise<ContractTemplate[]> {
-    return Array.from(this.contractTemplates.values());
+    return await db.select().from(contractTemplates);
   }
 
   async getContractTemplate(id: number): Promise<ContractTemplate | undefined> {
-    return this.contractTemplates.get(id);
+    const [template] = await db.select().from(contractTemplates).where(eq(contractTemplates.id, id));
+    return template || undefined;
   }
 
   async createContractTemplate(insertTemplate: InsertContractTemplate): Promise<ContractTemplate> {
-    const id = this.currentTemplateId++;
-    const template: ContractTemplate = { ...insertTemplate, id };
-    this.contractTemplates.set(id, template);
+    const [template] = await db
+      .insert(contractTemplates)
+      .values(insertTemplate)
+      .returning();
     return template;
   }
 
   // Contract methods
   async getContracts(): Promise<Contract[]> {
-    return Array.from(this.contracts.values());
+    return await db.select().from(contracts);
   }
 
   async getContract(id: number): Promise<Contract | undefined> {
-    return this.contracts.get(id);
+    const [contract] = await db.select().from(contracts).where(eq(contracts.id, id));
+    return contract || undefined;
   }
 
   async createContract(insertContract: InsertContract): Promise<Contract> {
-    const id = this.currentContractId++;
-    const now = new Date();
-    const contract: Contract = { 
-      ...insertContract, 
-      id,
-      createdAt: now,
-      updatedAt: now
-    };
-    this.contracts.set(id, contract);
+    const [contract] = await db
+      .insert(contracts)
+      .values({
+        ...insertContract,
+        status: insertContract.status || "draft"
+      })
+      .returning();
     return contract;
   }
 
   async updateContract(id: number, updateData: Partial<InsertContract>): Promise<Contract | undefined> {
-    const existing = this.contracts.get(id);
-    if (!existing) return undefined;
-
-    const updated: Contract = {
-      ...existing,
-      ...updateData,
-      updatedAt: new Date()
-    };
-    this.contracts.set(id, updated);
-    return updated;
+    const [updated] = await db
+      .update(contracts)
+      .set({
+        ...updateData,
+        updatedAt: new Date()
+      })
+      .where(eq(contracts.id, id))
+      .returning();
+    return updated || undefined;
   }
 
   async deleteContract(id: number): Promise<boolean> {
-    return this.contracts.delete(id);
+    const result = await db.delete(contracts).where(eq(contracts.id, id));
+    return result.rowCount > 0;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
