@@ -126,14 +126,14 @@ export class MemStorage implements IStorage {
           ]},
           { id: "employment.position", label: "職種", type: "text", placeholder: "ソフトウェアエンジニア", required: true },
           { id: "employment.startDate", label: "雇用開始日", type: "date", required: true },
-          { id: "employment.probationPeriod", label: "試用期間", type: "select", options: [
+          { id: "employment.probationPeriod", label: "試用期間", type: "select", required: false, options: [
             { value: "", label: "なし" },
             { value: "1ヶ月", label: "1ヶ月" },
             { value: "3ヶ月", label: "3ヶ月" },
             { value: "6ヶ月", label: "6ヶ月" }
           ]},
           { id: "employment.salary", label: "基本給", type: "number", placeholder: "300000", required: true },
-          { id: "employment.paymentDate", label: "給与支払日", type: "select", options: [
+          { id: "employment.paymentDate", label: "給与支払日", type: "select", required: true, options: [
             { value: "毎月25日", label: "毎月25日" },
             { value: "月末", label: "月末" },
             { value: "毎月15日", label: "毎月15日" }
@@ -149,12 +149,75 @@ export class MemStorage implements IStorage {
         description: "フリーランス・外注業務の委託契約に使用",
         icon: "fas fa-handshake",
         estimatedTime: "約15分",
-        fieldCount: 20,
+        fieldCount: 12,
         template: `<div class="contract-document">
           <h1 class="contract-title">業務委託契約書</h1>
-          <p>委託者と受託者は、以下の通り業務委託契約を締結する。</p>
+          
+          <div class="contract-parties">
+            <div class="client-info">
+              <h3>委託者：</h3>
+              <p>{{client.companyName}}</p>
+              <p>代表者：{{client.representativeName}}</p>
+              <p>住所：{{client.address}}</p>
+            </div>
+            
+            <div class="contractor-info">
+              <h3>受託者：</h3>
+              <p>{{contractor.name}}</p>
+              <p>住所：{{contractor.address}}</p>
+            </div>
+          </div>
+          
+          <p class="contract-intro">上記当事者間において、下記条件にて業務委託契約を締結する。</p>
+          
+          <div class="contract-clauses">
+            <div class="clause">
+              <h4>第1条（業務内容）</h4>
+              <p>委託者は受託者に対し、{{service.description}}の業務を委託し、受託者はこれを受託する。</p>
+            </div>
+            
+            <div class="clause">
+              <h4>第2条（委託期間）</h4>
+              <p>委託期間は{{service.startDate}}から{{service.endDate}}までとする。</p>
+            </div>
+            
+            <div class="clause">
+              <h4>第3条（報酬）</h4>
+              <p>委託業務の報酬は{{service.paymentType}}{{service.amount}}円とし、{{service.paymentSchedule}}に支払う。</p>
+            </div>
+            
+            <div class="clause">
+              <h4>第4条（納期）</h4>
+              <p>受託者は{{service.deliveryDate}}までに業務を完了し、委託者に納品するものとする。</p>
+            </div>
+          </div>
+          
+          <div class="contract-footer">
+            <p>以上、契約成立の証として本書2通を作成し、当事者各自1通ずつ保有する。</p>
+            <div class="signature-section">
+              <div class="date">契約締結日：{{contractDate}}</div>
+            </div>
+          </div>
         </div>`,
-        fields: []
+        fields: [
+          { id: "client.companyName", label: "委託者会社名", type: "text", placeholder: "株式会社サンプル", required: true },
+          { id: "client.representativeName", label: "委託者代表者名", type: "text", placeholder: "田中 太郎", required: true },
+          { id: "client.address", label: "委託者住所", type: "text", placeholder: "東京都渋谷区...", required: true },
+          { id: "contractor.name", label: "受託者氏名", type: "text", placeholder: "山田 花子", required: true },
+          { id: "contractor.address", label: "受託者住所", type: "text", placeholder: "東京都新宿区...", required: true },
+          { id: "service.description", label: "業務内容", type: "text", placeholder: "Webサイト制作", required: true },
+          { id: "service.startDate", label: "委託開始日", type: "date", required: true },
+          { id: "service.endDate", label: "委託終了日", type: "date", required: true },
+          { id: "service.paymentType", label: "報酬形態", type: "select", required: true, options: [
+            { value: "一括", label: "一括" },
+            { value: "月額", label: "月額" },
+            { value: "時給", label: "時給" }
+          ]},
+          { id: "service.amount", label: "報酬金額", type: "number", placeholder: "500000", required: true },
+          { id: "service.paymentSchedule", label: "支払時期", type: "text", placeholder: "納品後30日以内", required: true },
+          { id: "service.deliveryDate", label: "納期", type: "date", required: true },
+          { id: "contractDate", label: "契約締結日", type: "date", required: true }
+        ]
       },
       {
         name: "rental",

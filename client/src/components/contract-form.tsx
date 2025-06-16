@@ -34,6 +34,15 @@ export default function ContractForm({ template, contractId, onContractCreated }
   // Create form schema based on template fields
   const createFormSchema = (fields: ContractField[]) => {
     const schemaFields: Record<string, z.ZodType> = {};
+    
+    // Handle case where fields might be undefined or empty
+    if (!fields || !Array.isArray(fields) || fields.length === 0) {
+      // Return a schema with at least one field to avoid empty object issues
+      return z.object({
+        _placeholder: z.string().optional()
+      });
+    }
+    
     fields.forEach(field => {
       let fieldSchema: z.ZodType;
       
@@ -52,6 +61,8 @@ export default function ContractForm({ template, contractId, onContractCreated }
         fieldSchema = fieldSchema.refine(val => val !== "" && val !== null && val !== undefined, {
           message: `${field.label}は必須項目です`,
         });
+      } else {
+        fieldSchema = fieldSchema.optional();
       }
       
       schemaFields[field.id] = fieldSchema;
@@ -60,7 +71,7 @@ export default function ContractForm({ template, contractId, onContractCreated }
     return z.object(schemaFields);
   };
 
-  const formSchema = createFormSchema(template.fields);
+  const formSchema = createFormSchema(templateFields);
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: contract?.data || {},
@@ -148,13 +159,20 @@ export default function ContractForm({ template, contractId, onContractCreated }
   };
 
   // Group fields by section for better organization
-  const employerFields = template.fields.filter(field => field.id.startsWith('employer.'));
-  const employeeFields = template.fields.filter(field => field.id.startsWith('employee.'));
-  const employmentFields = template.fields.filter(field => field.id.startsWith('employment.'));
-  const otherFields = template.fields.filter(field => 
+  const templateFields = (template.fields as ContractField[]) || [];
+  const employerFields = templateFields.filter(field => field.id.startsWith('employer.'));
+  const employeeFields = templateFields.filter(field => field.id.startsWith('employee.'));
+  const employmentFields = templateFields.filter(field => field.id.startsWith('employment.'));
+  const clientFields = templateFields.filter(field => field.id.startsWith('client.'));
+  const contractorFields = templateFields.filter(field => field.id.startsWith('contractor.'));
+  const serviceFields = templateFields.filter(field => field.id.startsWith('service.'));
+  const otherFields = templateFields.filter(field => 
     !field.id.startsWith('employer.') && 
     !field.id.startsWith('employee.') && 
-    !field.id.startsWith('employment.')
+    !field.id.startsWith('employment.') &&
+    !field.id.startsWith('client.') &&
+    !field.id.startsWith('contractor.') &&
+    !field.id.startsWith('service.')
   );
 
   const renderField = (field: ContractField) => (
